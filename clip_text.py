@@ -2,7 +2,6 @@ from typing import Dict, Optional, Sequence
 
 import torch
 from jina import DocumentArray, Executor, requests
-from jina_commons.batching import get_docs_batch_generator
 from transformers import CLIPModel, CLIPTokenizer
 
 
@@ -36,8 +35,8 @@ class CLIPTextEncoder(Executor):
             batch size is not passed as a parameter with the request.
         """
         super().__init__(*args, **kwargs)
-        self.default_traversal_paths = traversal_paths
-        self.default_batch_size = batch_size
+        self.traversal_paths = traversal_paths
+        self.batch_size = batch_size
         self.pretrained_model_name_or_path = pretrained_model_name_or_path
         self.base_tokenizer_model = (
             base_tokenizer_model or pretrained_model_name_or_path
@@ -60,17 +59,17 @@ class CLIPTextEncoder(Executor):
             The accepted keys are ``traversal_paths`` and ``batch_size`` - in their
             absence their corresponding default values are used.
         """
-        for docs_batch in get_docs_batch_generator(
-            docs,
-            traversal_path=parameters.get(
-                'traversal_paths', self.default_traversal_paths
-            ),
-            batch_size=parameters.get('batch_size', self.default_batch_size),
-            needs_attr='text',
+        if docs is None:
+            return
+
+        for docs_batch in docs.batch(
+            traversal_paths=parameters.get('traversal_paths', self.traversal_paths),
+            batch_size=parameters.get('batch_size', self.batch_size),
+            require_attr='text',
         ):
             text_batch = docs_batch.get_attributes('text')
 
-            with torch.no_grad():
+            with torch.inference_mode():
                 input_tokens = self._generate_input_tokens(text_batch)
                 embeddings = self.model.get_text_features(**input_tokens).cpu().numpy()
                 for doc, embedding in zip(docs_batch, embeddings):
