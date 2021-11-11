@@ -62,10 +62,10 @@ class CLIPTextEncoder(Executor):
         if docs is None:
             return
 
-        for docs_batch in docs.batch(
+        for docs_batch in docs.traverse_flat(
             traversal_paths=parameters.get('traversal_paths', self.traversal_paths),
-            batch_size=parameters.get('batch_size', self.batch_size),
-            require_attr='text',
+            filter_fn=lambda doc: len(doc.text) > 0).batch(
+                batch_size=parameters.get('batch_size', self.batch_size),
         ):
             text_batch = docs_batch.get_attributes('text')
 
