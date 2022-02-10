@@ -24,11 +24,6 @@ def test_no_documents(encoder: CLIPTextEncoder):
     encoder.encode(docs=DocumentArray(), parameters={})
     assert len(docs) == 0
 
-
-def test_none_docs(encoder: CLIPTextEncoder):
-    encoder.encode(docs=None, parameters={})
-
-
 def test_docs_no_texts(encoder: CLIPTextEncoder):
     docs = DocumentArray([Document()])
     encoder.encode(docs=DocumentArray(), parameters={})
