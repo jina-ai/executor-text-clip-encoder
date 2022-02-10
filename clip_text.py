@@ -50,7 +50,7 @@ class CLIPTextEncoder(Executor):
         self.model.eval().to(device)
 
     @requests
-    def encode(self, docs: Optional[DocumentArray], parameters: Dict, **kwargs):
+    def encode(self, docs: DocumentArray, parameters: Dict, **kwargs):
         """
         Encode all documents with the `text` attribute and store the embeddings in the
         `embedding` attribute.
@@ -60,8 +60,6 @@ class CLIPTextEncoder(Executor):
             The accepted keys are ``traversal_paths`` and ``batch_size`` - in their
             absence their corresponding default values are used.
         """
-        if docs is None:
-            return
 
         for docs_batch in DocumentArray(
             filter(
