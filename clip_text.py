@@ -1,7 +1,8 @@
 from typing import Dict, Optional, Sequence
 
 import torch
-from jina import DocumentArray, Executor, requests
+from docarray import DocumentArray
+from jina import Executor, requests
 from transformers import CLIPModel, CLIPTokenizer
 
 
@@ -14,7 +15,7 @@ class CLIPTextEncoder(Executor):
         base_tokenizer_model: Optional[str] = None,
         max_length: int = 77,
         device: str = 'cpu',
-        traversal_paths: Sequence[str] = ['r'],
+        traversal_paths: str = '@r',
         batch_size: int = 32,
         *args,
         **kwargs,
@@ -49,7 +50,7 @@ class CLIPTextEncoder(Executor):
         self.model.eval().to(device)
 
     @requests
-    def encode(self, docs: Optional[DocumentArray], parameters: Dict, **kwargs):
+    def encode(self, docs: DocumentArray, parameters: Dict, **kwargs):
         """
         Encode all documents with the `text` attribute and store the embeddings in the
         `embedding` attribute.
@@ -59,15 +60,15 @@ class CLIPTextEncoder(Executor):
             The accepted keys are ``traversal_paths`` and ``batch_size`` - in their
             absence their corresponding default values are used.
         """
-        if docs is None:
-            return
 
-        for docs_batch in docs.batch(
-            traversal_paths=parameters.get('traversal_paths', self.traversal_paths),
-            batch_size=parameters.get('batch_size', self.batch_size),
-            require_attr='text',
-        ):
-            text_batch = docs_batch.get_attributes('text')
+        for docs_batch in DocumentArray(
+            filter(
+                lambda x: bool(x.text),
+                docs[parameters.get('traversal_paths', self.traversal_paths)],
+            )
+        ).batch(batch_size=parameters.get('batch_size', self.batch_size)) :
+
+            text_batch = docs_batch.texts
 
             with torch.inference_mode():
                 input_tokens = self._generate_input_tokens(text_batch)
